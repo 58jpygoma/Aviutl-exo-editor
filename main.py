@@ -210,6 +210,7 @@ def main(page: ft.Page):
     def on_keyboard(e:ft.KeyboardEvent):
         if e.key == "Enter" and e.shift:
             change_section(nav_folus_now+1)
+            section_content_data_list[nav_folus_now][field_focus_now[1]][field_focus_now[2]].cells[field_focus_now[3]].content.focus()
         elif e.key == "Enter":
             print(field_focus_now)
             if field_focus_now[2]+1 >= len(section_content_data_list[field_focus_now[0]][field_focus_now[1]]):
