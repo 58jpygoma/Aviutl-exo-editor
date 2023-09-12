@@ -105,7 +105,7 @@ def merge_config(config,section_content_data_list,csv_path):
                         element_value = element_insert_value.replace("{number}",element_value)
                         if re.match(r'^[\d\s()+\-*/.]*', element_value):
                             result = eval(element_value)
-                        element_value=str(round(result,decimal_places-1))
+                        element_value=str(round(result,decimal_places))
 
                     replace_dict[element_name] = element_value
                     
