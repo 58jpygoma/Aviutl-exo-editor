@@ -15,7 +15,7 @@ install:
 
 
 build_script:
-- flet pack main.py --name AviUtl exo editor --icon icon.png --product-name AviUtl exo editor --product-version "1.0.3" --copyright "Copyright (c) 2023 58jpygoma Inc."
+- flet pack main.py --name "AviUtl exo editor" --icon icon.png --product-name "AviUtl exo editor" --product-version "1.0.3" --copyright "Copyright (c) 2023 58jpygoma Inc."
 
 test: off
 
