@@ -10,7 +10,7 @@ environment:
     secure: Ti46nPnZgFh0nRteU6ma0EhJnCTW7PaMn9hnnewZl4gBFPyRQnXNCwGog02+MRLX
 
 install:
-- pip install -r requirements.txt
+- pip install --update -r requirements.txt
 
 build_script:
 - flet pack main.py --name AviUtl exo editor --icon icon.png --product-name AviUtl exo editor --product-version "1.0.3" --copyright "Copyright (c) 2023 58jpygoma Inc."

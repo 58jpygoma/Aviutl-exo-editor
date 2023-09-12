@@ -1,5 +1,5 @@
---upgrade pip
---upgrade setuptools wheel
+pip
+wheel
 
 flet
 pillow >= 10.0.0
