@@ -23,7 +23,7 @@ def main(page: ft.Page):
             section_content_data.clear()
 
             nonlocal config
-            config = configparser.ConfigParser()
+            config = configparser.ConfigParser(interpolation = None)
             # 大文字を区別する
             config.optionxform = str
             config.read(file_path)
@@ -62,7 +62,8 @@ def main(page: ft.Page):
                 section_nav_data.append(
                     ft.ListTile(title=ft.Text(f"{layer} : {name}"),
                                 on_click =lambda _,n=n: change_section(n), 
-                                dense=True),
+                                dense=True,
+                                selected=True if nav_folus_now == n else False),
                     )
             #print(section_nav_data)
             section_nav.update()
@@ -146,7 +147,7 @@ def main(page: ft.Page):
         print(config)
         merged_config = exo_edit.merge_config(config,section_content_data_list,csv_path)
 
-        with open(file_path, 'w') as configfile:
+        with open(file_path+".exo", 'w') as configfile:
             # 設定をファイルに書き込む
             merged_config.write(configfile, space_around_delimiters=False)
 
@@ -157,8 +158,15 @@ def main(page: ft.Page):
         nav_folus_now = n
         temp = section_content_data_list[nav_folus_now]
         section_content.rows = [item for sublist in temp for item in sublist]
-        page.update()
+        for i, section in enumerate(section_nav_data):
+            if i ==n:
+                section.selected = True
+            else:
+                section.selected = False
 
+        page.update()
+    
+    
     field_focus_now=[]
     def csv_input_focus(l,m,n,column):
         nonlocal field_focus_now

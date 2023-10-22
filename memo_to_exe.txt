@@ -1,0 +1,3 @@
+.venv\Scripts\activate
+pip list
+flet pack main.py --name "AviUtl exo editor" --icon icon.png --product-name "AviUtl exo editor" --product-version "1.0.6" --copyright "Copyright (c) 2023 58jpygoma Inc."
