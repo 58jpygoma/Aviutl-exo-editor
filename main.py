@@ -2,6 +2,7 @@ import flet as ft
 import os
 import csv
 import configparser
+import re
 
 
 import exo_edit
@@ -72,6 +73,7 @@ def main(page: ft.Page):
 
             #section_content_dataの作成
             for l,object_dict_list in enumerate(objects):
+                color = 0
                 a = []
                 for m,object_dict in enumerate(object_dict_list):
                     b = []    
@@ -93,7 +95,9 @@ def main(page: ft.Page):
                                     ft.DataCell(
                                         content=(ft.Dropdown(
                                             options=[
-                                                ft.dropdown.Option("数字"),    
+                                                ft.dropdown.Option("数字"),
+                                                ft.dropdown.Option("文字"),
+                                                ft.dropdown.Option(" ")  
                                             ],
                                             border="NONE",
                                             on_focus=lambda _,l=l,m=m,n=n:csv_input_focus(l,m,n,3)
@@ -105,12 +109,13 @@ def main(page: ft.Page):
                                             on_focus=lambda _,l=l,m=m,n=n:csv_input_focus(l,m,n,4)
                                         ),
                                     ),
-                                ]
+                                ],
+                                color = ft.colors.SURFACE if color == 0 else ft.colors.GREY_200
+
                             )
                         )
-                        if add_string_option:
-                            b[-1].cells[3].content.options.append(ft.dropdown.Option("文字"))
-                    a.append(b)   
+                    a.append(b)
+                    color = (color+1)%2
                 section_content_data_list.append(a)
                 #print(section_content_data_list)
         
@@ -127,16 +132,22 @@ def main(page: ft.Page):
             with open(file=file_path,mode="r", newline='',encoding=csv_encoding) as f:
                 reader = csv.reader(f)
                 data = list(reader)
-            data_columns = []
+            data_columns = [ft.DataColumn(ft.Text("列番号")),ft.DataColumn(ft.Text("列名")),ft.DataColumn(ft.Text("1行目")),ft.DataColumn(ft.Text("2行目"))]
             data_rows=[]
             #print(data)
-            for column in data[0]:
-                data_columns.append(ft.DataColumn(ft.Text(column)))
-            for row in data[1:]:
+            for n,column in enumerate(data[0]):
                 data_row = ft.DataRow()
-                for value in row:
-                    data_row.cells.append(ft.DataCell(ft.Text(value)),)
+                data_row.cells.extend([ft.DataCell(ft.Text(n+1)),ft.DataCell(ft.Text(column)),ft.DataCell(ft.Text(data[1][n])),ft.DataCell(ft.Text(data[2][n]))])
                 data_rows.append(data_row)
+
+
+            # for column in data[0]:
+            #     data_columns.append(ft.DataColumn(ft.Text(column)))
+            # for row in data[1:]:
+            #     data_row = ft.DataRow()
+            #     for value in row:
+            #         data_row.cells.append(ft.DataCell(ft.Text(value)),)
+            #     data_rows.append(data_row)
 
             csv_table.columns = data_columns
             csv_table.rows = data_rows
@@ -152,6 +163,127 @@ def main(page: ft.Page):
         with open(file_path, 'w') as configfile:
             # 設定をファイルに書き込む
             merged_config.write(configfile, space_around_delimiters=False)
+
+    #一括入力
+    def close_filler(e):
+        page.dialog = filler
+        filler.open = False
+        page.update()
+    ft_fill_terms =[ft.DataRow([ft.DataCell(ft.TextField(width=90)),ft.DataCell(ft.TextField(width=90))],),
+                    ft.DataRow([ft.DataCell(ft.TextField(width=90)),ft.DataCell(ft.TextField(width=90))],),
+                    ft.DataRow([ft.DataCell(ft.TextField(width=90)),ft.DataCell(ft.TextField(width=90))],),
+                    ]
+    ft_fill_terms_m = [ft.DataRow([ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField())],),
+                       ft.DataRow([ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField())],),
+                       ft.DataRow([ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField()),ft.DataCell(ft.TextField())],),
+                       ]
+    ft_fill_key = ft.TextField(hint_text="挿入する項目")
+    ft_fill_value = ft.TextField(hint_text="挿入する文字")
+    ft_fill_csv_column = ft.TextField(hint_text=".csvの列番号 {layer}でレイヤー番号を指定できる（{layer}-4）")
+    ft_fill_insert_type = ft.Dropdown(options=[ft.dropdown.Option("数字"),ft.dropdown.Option("文字"),ft.dropdown.Option(" ")],hint_text="入力タイプ")
+
+    def fill_terms(e):
+        fill_list =[]
+        
+        for ft_row in ft_fill_terms:# 各ft_row
+            fill_name = ft_row.cells[0].content.value
+            fill_term = ft_row.cells[1].content.value
+            if fill_name != "":
+                fill_list.append([fill_name,fill_term])
+        for ft_row in ft_fill_terms_m:# 各ft_row
+            fill_name = ft_row.cells[0].content.value
+            fill_term_min = ft_row.cells[1].content.value
+            fill_term_max = ft_row.cells[2].content.value
+            if fill_name != "":
+                fill_list.append([fill_name,fill_term_min,fill_term_max])
+        for _, section_content_data in enumerate(section_content_data_list):#オブジェクト　1: テキストとか
+            fill_flag = 0
+
+            for n,section in enumerate(section_content_data):# 0.0 0.1 とか
+                
+                for ft_row in section:# 各ft_row
+                    
+                    for n,ft_data_cell in enumerate(ft_row.cells):#それぞれの要素_text x とか
+                        content = ft_data_cell.content
+                        #print(content.value)
+                        if n == 0:#項目名
+                            element_name = content.value
+                            for term in fill_list:
+                                #項目名のみ埋まっている場合
+                                if term[0] == element_name and term[1] == "":
+                                    fill_flag += 1
+                            if element_name == ft_fill_key.value:
+                                fill_content_word = ft_row.cells[4].content
+                                fill_content_option = ft_row.cells[3].content
+                                fill_content_csv = ft_row.cells[2].content
+                            if element_name == "layer":
+                                layer = ft_row.cells[1].content.value
+                        elif n == 1:#初期値
+                            first_value = content.value
+                            for term in fill_list:
+                                #項目名のみ埋まっている場合
+                                if term[0] == element_name and term[1] != "" :
+                                    if len(term)==2 and term[1] == first_value:
+                                        fill_flag += 1
+                                    if len(term)==3:
+                                        try:
+                                            min = float(term[1])
+                                            max = float(term[2])
+                                            if float(first_value)>= min and float(first_value)<=max:
+                                                fill_flag += 1
+                                        except:
+                                            pass
+            if fill_flag == len(fill_list):
+                csv_result=ft_fill_csv_column.value.replace("{layer}",layer)
+                if re.match(r'^[\d\s()+\-*/.]*', csv_result):
+                    csv_result = eval(csv_result)
+                fill_content_word.value = ft_fill_value.value
+                fill_content_option.value = ft_fill_insert_type.value
+                fill_content_csv.value = csv_result
+    filler = ft.AlertDialog(
+        modal= False,
+        title=ft.Text("一括入力"), 
+        content=ft.Column(
+            [
+                ft_fill_key,
+                ft_fill_value,
+                ft_fill_csv_column,
+                ft_fill_insert_type,
+                
+                ft.DataTable(
+                    expand=1,
+                    column_spacing=5,
+                    columns=[
+                        ft.DataColumn(ft.Text("項目名",width=90)),
+                        ft.DataColumn(ft.Text("値",width=90)),
+                    ],
+                    rows = ft_fill_terms
+                ),
+
+                ft.DataTable(
+                    expand=1,
+                    column_spacing=5,
+                    columns=[
+                        ft.DataColumn(ft.Text("項目名",width=90)),
+                        ft.DataColumn(ft.Text("最小値",width=90)),
+                        ft.DataColumn(ft.Text("最大値",width=90)),
+                    ],
+                    rows = ft_fill_terms_m
+                ),
+                ft.Text("例えば項目名layer、最小値3、最大値4、項目名_name、値図形、挿入する項目X、値{cell}にすると、初期値が3から4のレイヤーかつ図形のオブジェクトのXに{cell}という値が入る"),
+                ft.Text("例えば挿入する項目X、挿入する語句4にすると、すべてのXが4になる"),
+            ]
+        ),
+        actions=[
+            ft.TextButton("一括入力", on_click=fill_terms),
+            ft.TextButton("閉じる", on_click=close_filler),
+        ],
+    )
+    def open_filler(e):
+        page.dialog = filler
+        filler.open = True
+        page.update()
+    
 
     #表示を変えるイベント群
     nav_folus_now = 0
@@ -173,6 +305,10 @@ def main(page: ft.Page):
     def csv_input_focus(l,m,n,column):
         nonlocal field_focus_now
         field_focus_now = [l,m,n,column]
+
+
+    
+ 
     
 
 
@@ -184,16 +320,22 @@ def main(page: ft.Page):
     #open button
     filepicker = ft.FilePicker(on_result=pick_file_result)
     read_button = ft.ElevatedButton(
-                    "Pick files",
+                    "インポート",
                     icon=ft.icons.FILE_OPEN,
                     on_click=lambda _: filepicker.pick_files(allow_multiple=False,allowed_extensions =["exo","csv"])
                 )
     #write button
     filepicker_write = ft.FilePicker(on_result=pick_file_write_result)
     write_button = ft.ElevatedButton(
-                    "Save files",
-                    icon=ft.icons.SAVE,
+                    "エクスポート",
+                    icon=ft.icons.FILE_DOWNLOAD,
                     on_click=lambda _: filepicker_write.save_file(allowed_extensions=["exo"])
+                )
+    #fill
+    filler_button = ft.ElevatedButton(
+                    "一括挿入",
+                    icon=ft.icons.DRIVE_FILE_RENAME_OUTLINE_SHARP,
+                    on_click=open_filler,
                 )
     #sections
     section_nav_data = []
@@ -210,8 +352,8 @@ def main(page: ft.Page):
             ft.DataColumn(ft.Text("項目名",width=120),tooltip="項目名=値"),
             ft.DataColumn(ft.Text("初期値",width=90)),
             ft.DataColumn(ft.Text(".csvの列番号",width=90),tooltip=".csvの何列目と置き換えるか"),
-            ft.DataColumn(ft.Text("挿入",width=80),tooltip="選択して任意の値を入力"),
-            ft.DataColumn(ft.Text("挿入",width=200),tooltip="選択して任意の値を入力"),
+            ft.DataColumn(ft.Text("挿入",width=80),tooltip="入力する種類の選択"),
+            ft.DataColumn(ft.Text("挿入",width=200),tooltip="{cell},{first}はそれぞれcsvのセルの値と初期値に置換されます。"),
         ],
         rows = [item for sublist in section_content_data for item in sublist]
     )
@@ -236,7 +378,7 @@ def main(page: ft.Page):
     page.on_keyboard_event = on_keyboard
 
     page.add(
-        ft.Row([read_button,write_button]),
+        ft.Row([read_button,write_button,filler_button]),
         ft.Row([
             section_nav,
             ft.VerticalDivider(width=1),
