@@ -40,10 +40,16 @@ def merge_config(config,section_content_data_list,csv_path):
 
     #print(config_body.sections())
     #csvの読み込み
-    with open(file=csv_path,mode="r", newline='') as f:
-                reader = csv.reader(f)
-                header = next(reader)
-                data = list(reader)
+    with open(csv_path, 'rb') as file:
+        data = file.read(4)
+        if data[:3] == b'\xEF\xBB\xBF':  # UTF-8のBOMを検出
+            csv_encoding = 'utf-8-sig'
+        else:
+            csv_encoding = 'utf-8'
+    with open(file=csv_path,mode="r", newline='',encoding=csv_encoding) as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        data = list(reader)
 
     #書き換え
     csvlen = len(data)
@@ -58,13 +64,13 @@ def merge_config(config,section_content_data_list,csv_path):
                     section_name = f"{i}.{n-1}"
                 
                 for ft_row in section:# 各ft_row
+                    element_value = ""
                     for n,ft_data_cell in enumerate(ft_row.cells):#それぞれの要素_text x とか
                         content = ft_data_cell.content
                         #print(content.value)
                         if n == 0:#項目名
                             element_name = content.value
                         elif n == 1:#初期値
-                            element_value = content.value
                             first_value = content.value
                         elif n == 2:#csvの列番号
                             try:
@@ -80,34 +86,35 @@ def merge_config(config,section_content_data_list,csv_path):
                     #print(type(element_name))
                     #何も入力しなくてもstart,endだけは書き換える
                     if element_name == "start" or element_name ==  "end":
-                        element_value = str(int(element_value)+length*l)
+                        element_value = str(int(first_value)+length*l)
 
-                    #テキストは変換する
-                    if element_name == "text":
-                        element_value = str_to_byt(element_name)
                     #列番号があれば書き換えを行う
                     #print(element_column)
                     if element_column != None:
-                        if element_name == "text":
-                            element_value = str_to_byt(data[l][element_column-1])
-                        else:
-                            element_value = str(data[l][element_column-1])
-                    if element_insert_type == "文字":
-                        element1 = byt_to_str(element_value)
-                        element_value = element_insert_value.replace("{text}",element1)
+                        cell = str(data[l][element_column-1])
+                        element_value = cell
+                        #列番号があって文字置換が指定されていて、タイプが選択されていれば以下の処理を行う。
+                        if element_insert_value != "":
+                            if element_insert_type == "文字":
+                                element_value = element_insert_value.replace("{cell}",cell).replace("{first}",first_value)
+                                # element_value = str_to_byt(element_value)
+                            elif element_insert_type == "数字":
+                                #桁数を判定
+                                if "." in element_value:
+                                    decimal_places = len(first_value.split(".")[1])
+                                else:
+                                    decimal_places = 0
+
+                                element_value = element_insert_value.replace("{cell}",cell).replace("{first}",first_value)
+                                result = ""
+                                if re.match(r'^[\d\s()+\-*/.]*', element_value):
+                                    result = eval(element_value)
+                                element_value=str(round(result,decimal_places))
+                    elif element_value =="":
+                        element_value = first_value
+                    #テキストは変換する
+                    if element_name == "text":
                         element_value = str_to_byt(element_value)
-                    if element_insert_type == "数字":
-                        #桁数を判定
-                        if "." in element_value:
-                            decimal_places = len(element_value.split(".")[1])
-                        else:
-                            decimal_places = 0
-
-                        element_value = element_insert_value.replace("{number}",element_value).replace("{first}",first_value)
-                        if re.match(r'^[\d\s()+\-*/.]*', element_value):
-                            result = eval(element_value)
-                        element_value=str(round(result,decimal_places))
-
                     replace_dict[element_name] = element_value
                     
                 

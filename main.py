@@ -144,10 +144,12 @@ def main(page: ft.Page):
 
     def pick_file_write_result(e: ft.FilePickerResultEvent):
         file_path = e.path
+        if not file_path.endswith(".exo"):
+            file_path += ".exo"
         print(config)
         merged_config = exo_edit.merge_config(config,section_content_data_list,csv_path)
 
-        with open(file_path+".exo", 'w') as configfile:
+        with open(file_path, 'w') as configfile:
             # 設定をファイルに書き込む
             merged_config.write(configfile, space_around_delimiters=False)
 
