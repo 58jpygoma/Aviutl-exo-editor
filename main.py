@@ -117,7 +117,13 @@ def main(page: ft.Page):
         if file_extension == ".csv":
             nonlocal csv_path
             csv_path = file_path
-            with open(file=file_path,mode="r", newline='') as f:
+            with open(file_path, 'rb') as file:
+                data = file.read(4)
+                if data[:3] == b'\xEF\xBB\xBF':  # UTF-8のBOMを検出
+                    csv_encoding = 'utf-8-sig'
+                else:
+                    csv_encoding = 'utf-8'
+            with open(file=file_path,mode="r", newline='',encoding=csv_encoding) as f:
                 reader = csv.reader(f)
                 data = list(reader)
             data_columns = []

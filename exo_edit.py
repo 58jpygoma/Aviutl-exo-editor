@@ -65,6 +65,7 @@ def merge_config(config,section_content_data_list,csv_path):
                             element_name = content.value
                         elif n == 1:#初期値
                             element_value = content.value
+                            first_value = content.value
                         elif n == 2:#csvの列番号
                             try:
                                 element_column = int(content.value)
@@ -102,7 +103,7 @@ def merge_config(config,section_content_data_list,csv_path):
                         else:
                             decimal_places = 0
 
-                        element_value = element_insert_value.replace("{number}",element_value)
+                        element_value = element_insert_value.replace("{number}",element_value).replace("{first}",first_value)
                         if re.match(r'^[\d\s()+\-*/.]*', element_value):
                             result = eval(element_value)
                         element_value=str(round(result,decimal_places))
